@@ -1,0 +1,45 @@
+{
+  "nom_commun": "Sansevieria",
+  "nom_latin": "Sansevieria trifasciata",
+  "famille": "",
+  "categorie": "plantes_vertes",
+  "sous_categorie": "sansevieria",
+  "description": "La Sansevieria est une plante à feuilles persistantes, vertes avec des bandes jaunes ou blanches, pouvant atteindre une hauteur de 1 à 2 mètres. Elle est connue pour son aspect architectural et sa capacité à purifier l'air.",
+  "origine_naturelle": "",
+  "ecosysteme_naturel": "",
+  "exposition": "Lumineuse à semi-ombragée",
+  "sol_type": "Terreau universel ou terreau cactus et plantes grasses",
+  "sol_ph": "",
+  "terreau_recommande": "terreau plante verte",
+  "arrosage": "",
+  "arrosage_frequence": "Rare, laisser sécher le sol entre les arrosages",
+  "resistance_froid": "Supporte jusqu'à 10°C",
+  "zone_rusticite": "",
+  "hauteur_adulte": "1 à 2 mètres",
+  "croissance": "",
+  "taille": "",
+  "floraison": "Rare, en été, avec des fleurs blanches",
+  "fructification": "",
+  "biodiversite": "",
+  "insectes_attires": "",
+  "oiseaux_attires": "",
+  "associations_benefiques": [],
+  "associations_incompatibles": [
+    "Fougère"
+  ],
+  "plantes_meme_ecosysteme": [],
+  "maladies_courantes": "",
+  "ravageurs": "",
+  "conseil_plantation": "",
+  "conseil_entretien": "",
+  "tags": [],
+  "wiki": {
+    "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/Snake_plant.jpg/330px-Snake_plant.jpg"
+  },
+  "qa_memory": {},
+  "source": "error:Expecting value: line 1 column 1 (char 0)+enrichi",
+  "trefle": {
+    "source_trefle": true,
+    "famille_trefle": "Asparagaceae"
+  }
+}

@@ -1,31 +1,3 @@
-"""
-ia.py — Moteur IA : Wikipedia → Trefle → Groq → Mémoire
-=========================================================
-ORDRE STRICT pour toute nouvelle plante :
-  1. Cache local     (0 appel réseau)
-  2. Wikipedia       (faits vérifiés, gratuit, en français)
-  3. Trefle.io       (données botaniques structurées et chiffrées)
-  4. Groq            (synthèse + traduction + enrichissement FR)
-  5. Sauvegarde
-
-TREFLE.IO :
-  - API botanique ouverte (gratuite, clé API requise)
-  - Fournit des données objectives : résistance au froid, pH, hauteur,
-    besoins en eau, lumière, etc.
-  - Données en anglais → mappées et traduites automatiquement
-  - Réduit fortement les hallucinations de Groq sur les données chiffrées
-  - Si clé absente ou espèce inconnue : on passe silencieusement à Groq
-
-ENRICHISSEMENT AUTOMATIQUE :
-  - Si une fiche existe mais a des champs vides, on les complète
-  - Le chat libre détecte les noms de plantes et crée/enrichit les fiches
-  - Avec le temps, les appels Groq diminuent car la base s'enrichit
-
-CORRECTION CONTAMINATION :
-  - Le prompt groq_fiche est strict : Groq ne parle QUE de la plante demandée
-  - Vérification que nom_commun et nom_latin correspondent bien dans la réponse
-"""
-
 import os, re, json, requests
 from memory import (
     load_from_db, save_to_db, detect_category, FICHE_SCHEMA,
@@ -45,6 +17,7 @@ TREFLE_URL   = "https://trefle.io/api/v1"
 CHAMPS_ESSENTIELS = [
     "description", "exposition", "sol_type", "arrosage_frequence",
     "resistance_froid", "hauteur_adulte", "floraison",
+    "terreau_recommande",
     "associations_benefiques", "maladies_courantes", "conseil_plantation"
 ]
 
@@ -93,84 +66,158 @@ SYNONYMES_PLANTES = {
 }
 
 # ── Référentiel terreau — source de vérité pour tout conseil substrat ───────
+# ── Référentiel des substrats vendus en jardinerie ──────────────────────────
+# Noms exacts des sacs qu'on trouve en magasin (Jardiland, Gamm Vert, Truffaut…)
 TERREAU_REF = {
-    "terre de bruyère": {
-        "description": "Substrat acide (pH 4–6), riche en tourbe, pauvre en calcium",
-        "ecosystemes": ["lande", "forêt de conifères", "zone humide acide", "tourbière"],
-        "plantes":     ["Rhododendron", "Azalée", "Hortensia", "Camélia", "Magnolia",
-                        "Myrtille", "Fougère", "Callune", "Bruyère", "Gardénia"],
-        "ph": "4–6",
+    "terreau universel": {
+        "description": "Substrat polyvalent (pH 6–7), bon pour la majorité des plantes",
+        "ecosystemes": ["usage général"],
+        "plantes":     [],
+        "ph": "6–7",
     },
     "terreau méditerranéen": {
-        "description": "Substrat drainant (pH 6.5–8), pauvre, supporte la sécheresse",
+        "description": "Substrat très drainant (pH 6.5–8), pauvre, pour plantes de zones arides",
         "ecosystemes": ["garrigue", "maquis", "zone aride", "steppe", "climat sec"],
         "plantes":     ["Lavande", "Yucca", "Olivier", "Cordyline", "Agapanthe",
                         "Thym", "Romarin", "Laurier-rose", "Pistachier", "Ciste",
-                        "Agave", "Bougainvillée", "Palmier", "Cyprès"],
+                        "Agave", "Bougainvillée", "Palmier", "Cyprès", "Romarin"],
         "ph": "6.5–8",
+    },
+    "terre de bruyère": {
+        "description": "Substrat acide (pH 4–6), riche en tourbe, pour plantes acidophiles",
+        "ecosystemes": ["lande", "forêt de conifères", "zone humide acide", "tourbière"],
+        "plantes":     ["Rhododendron", "Azalée", "Hortensia", "Camélia", "Magnolia",
+                        "Myrtille", "Fougère", "Callune", "Bruyère", "Gardénia", "Kalmia"],
+        "ph": "4–6",
+    },
+    "terre végétale": {
+        "description": "Terre de jardin enrichie (pH 6–7), dense, pour plein sol et massifs",
+        "ecosystemes": ["jardin", "plein sol", "massif"],
+        "plantes":     [],
+        "ph": "6–7",
+    },
+    "terreau plantation": {
+        "description": "Substrat riche (pH 6–7), stimule la reprise à la plantation en plein sol",
+        "ecosystemes": ["plantation", "repiquage"],
+        "plantes":     [],
+        "ph": "6–7",
+    },
+    "tourbe": {
+        "description": "Substrat acide pur (pH 3.5–5), léger, retient bien l'eau — souvent utilisé en mélange",
+        "ecosystemes": ["tourbière", "zone humide acide"],
+        "plantes":     [],
+        "ph": "3.5–5",
     },
     "terreau plante verte": {
         "description": "Substrat équilibré (pH 6–7), riche en humus, retient bien l'humidité",
         "ecosystemes": ["forêt tropicale", "jungle", "sous-bois humide"],
         "plantes":     ["Pothos", "Ficus", "Dracaena", "Philodendron", "Calathea",
-                        "Dieffenbachia", "Schefflera", "Croton", "Spathiphyllum"],
+                        "Dieffenbachia", "Schefflera", "Croton", "Spathiphyllum",
+                        "Monstera", "Tradescantia", "Peperomia"],
         "ph": "6–7",
-    },
-    "terreau orchidée": {
-        "description": "Substrat très aéré (écorces de pin, pH 5.5–6.5), plantes épiphytes",
-        "ecosystemes": ["forêt tropicale humide", "épiphyte sur arbres"],
-        "plantes":     ["Orchidée", "Phalaenopsis", "Dendrobium", "Cattleya",
-                        "Anthurium", "Tillandsia"],
-        "ph": "5.5–6.5",
     },
     "terreau cactus": {
-        "description": "Substrat très drainant (pH 6–7), sableux, séchage rapide",
+        "description": "Substrat très drainant (pH 6–7), sableux, séchage très rapide",
         "ecosystemes": ["désert", "semi-aride", "savane sèche", "zone rocailleuse"],
         "plantes":     ["Cactus", "Succulente", "Echeveria", "Aloe", "Haworthia",
-                        "Sempervivum", "Sedum", "Euphorbe cactiforme"],
+                        "Sempervivum", "Sedum", "Euphorbe cactiforme", "Agave"],
         "ph": "6–7",
     },
-    "terreau universel": {
-        "description": "Substrat polyvalent (pH 6–7), usage général",
-        "ecosystemes": ["usage général, non spécialisé"],
-        "plantes":     [],
+    "terreau horticole potager": {
+        "description": "Substrat professionnel riche (pH 6–7), haute fertilité, usage intensif",
+        "ecosystemes": ["potager professionnel", "culture intensive"],
+        "plantes":     ["Tomate", "Poivron", "Aubergine", "Courgette", "Concombre"],
         "ph": "6–7",
     },
     "terreau potager": {
-        "description": "Substrat riche en nutriments (pH 6–7), haute fertilité",
-        "ecosystemes": ["culture alimentaire"],
+        "description": "Substrat riche en nutriments (pH 6–7), pour le jardinage amateur",
+        "ecosystemes": ["potager", "culture alimentaire"],
         "plantes":     ["Tomate", "Courgette", "Haricot", "Salade", "Carotte",
-                        "Poivron", "Aubergine", "Radis"],
+                        "Poivron", "Aubergine", "Radis", "Épinard", "Poireau"],
         "ph": "6–7",
+    },
+    "terreau orchidée": {
+        "description": "Substrat très aéré à base d'écorces de pin (pH 5.5–6.5), pour épiphytes",
+        "ecosystemes": ["forêt tropicale humide", "épiphyte sur arbres"],
+        "plantes":     ["Orchidée", "Phalaenopsis", "Dendrobium", "Cattleya",
+                        "Anthurium", "Tillandsia", "Broméliacée"],
+        "ph": "5.5–6.5",
+    },
+    "pouzzolane": {
+        "description": "Roche volcanique poreuse — améliore le drainage, allège le substrat. Pas un terreau seul.",
+        "ecosystemes": ["drainage", "amendement"],
+        "plantes":     [],
+        "ph": "neutre",
+    },
+    "bille d'argile": {
+        "description": "Argile expansée — drainage fond de pot, culture hydroponique. Pas un terreau seul.",
+        "ecosystemes": ["drainage", "fond de pot", "hydroponique"],
+        "plantes":     [],
+        "ph": "neutre",
     },
 }
 
-# Compositions recommandées pour plantes spécifiques
+# ── Mélanges recommandés par plante ─────────────────────────────────────────
+# Règle : si un mélange existe → TOUJOURS le recommander, pas un seul produit
 TERREAU_COMPOSITIONS = {
-    "Monstera":      "60 % terreau plante verte + 40 % terreau orchidée (écorces de pin pour le drainage)",
-    "Anthurium":     "50 % terreau plante verte + 50 % terreau orchidée",
-    "Orchidée":      "100 % terreau orchidée (écorces de pin uniquement — jamais de terreau classique)",
-    "Phalaenopsis":  "100 % terreau orchidée",
-    "Cactus":        "60 % terreau cactus + 40 % sable de rivière ou pouzzolane",
-    "Succulente":    "60 % terreau cactus + 40 % sable ou pouzzolane",
-    "Aloe":          "60 % terreau cactus + 40 % sable ou pouzzolane",
-    "Cordyline":     "60 % terreau méditerranéen + 20 % sable + 20 % pouzzolane (5–10 cm au fond du trou)",
-    "Yucca":         "70 % terreau méditerranéen + 30 % sable ou pouzzolane",
-    "Lavande":       "100 % terreau méditerranéen ou 70 % + 30 % pouzzolane",
-    "Olivier":       "100 % terreau méditerranéen",
-    "Agapanthe":     "70 % terreau méditerranéen + 30 % sable",
-    "Palmier":       "70 % terreau méditerranéen + 30 % sable",
-    "Rhododendron":  "100 % terre de bruyère",
-    "Azalée":        "100 % terre de bruyère",
-    "Camélia":       "100 % terre de bruyère",
-    "Hortensia":     "80 % terre de bruyère + 20 % terreau universel",
-    "Fougère":       "70 % terre de bruyère + 30 % terreau plante verte",
-    "Magnolia":      "80 % terre de bruyère + 20 % terreau universel",
-    "Pothos":        "100 % terreau plante verte",
-    "Philodendron":  "70 % terreau plante verte + 30 % terreau orchidée",
-    "Calathea":      "60 % terreau plante verte + 40 % tourbe blonde",
-    "Tomate":        "100 % terreau potager ou terreau universel enrichi",
-    "Géranium":      "100 % terreau universel ou terreau géranium",
+    # Tropicales intérieur
+    "Monstera":       "60 % terreau plante verte + 40 % terreau orchidée — billes d'argile au fond du pot",
+    "Pothos":         "100 % terreau plante verte (ou 70 % + 30 % terreau orchidée pour encore plus de drainage)",
+    "Philodendron":   "70 % terreau plante verte + 30 % terreau orchidée",
+    "Calathea":       "70 % terreau plante verte + 30 % tourbe",
+    "Dracaena":       "100 % terreau plante verte",
+    "Spathiphyllum":  "100 % terreau plante verte (garder légèrement humide en permanence)",
+    "Tradescantia":   "100 % terreau plante verte",
+    "Peperomia":      "60 % terreau plante verte + 40 % terreau orchidée",
+    "Ficus":          "100 % terreau plante verte",
+    "Schefflera":     "100 % terreau plante verte",
+    # Épiphytes / orchidées
+    "Orchidée":       "100 % terreau orchidée (écorces de pin uniquement — jamais de terreau classique)",
+    "Phalaenopsis":   "100 % terreau orchidée",
+    "Anthurium":      "50 % terreau plante verte + 50 % terreau orchidée",
+    "Broméliacée":    "50 % terreau orchidée + 50 % terreau plante verte",
+    # Succulentes / désert
+    "Cactus":         "60 % terreau cactus + 40 % pouzzolane — billes d'argile au fond du pot",
+    "Succulente":     "60 % terreau cactus + 40 % pouzzolane",
+    "Echeveria":      "60 % terreau cactus + 40 % pouzzolane",
+    "Aloe":           "60 % terreau cactus + 40 % pouzzolane",
+    "Haworthia":      "60 % terreau cactus + 40 % pouzzolane",
+    "Agave":          "60 % terreau méditerranéen + 40 % pouzzolane",
+    # Méditerranéennes
+    "Lavande":        "100 % terreau méditerranéen, ou 70 % terreau méditerranéen + 30 % pouzzolane en pot",
+    "Olivier":        "100 % terreau méditerranéen",
+    "Thym":           "100 % terreau méditerranéen",
+    "Romarin":        "100 % terreau méditerranéen",
+    "Yucca":          "70 % terreau méditerranéen + 30 % pouzzolane",
+    "Cordyline":      "60 % terreau méditerranéen + 20 % terreau universel + 20 % pouzzolane",
+    "Agapanthe":      "70 % terreau méditerranéen + 30 % pouzzolane",
+    "Palmier":        "70 % terreau méditerranéen + 30 % pouzzolane",
+    "Laurier-rose":   "100 % terreau méditerranéen",
+    "Bougainvillée":  "70 % terreau méditerranéen + 30 % terreau universel",
+    "Cyprès":         "100 % terreau méditerranéen ou terre végétale + pouzzolane",
+    # Acidophiles
+    "Rhododendron":   "100 % terre de bruyère",
+    "Azalée":         "100 % terre de bruyère",
+    "Camélia":        "100 % terre de bruyère",
+    "Hortensia":      "80 % terre de bruyère + 20 % terreau universel",
+    "Myrtille":       "100 % terre de bruyère",
+    "Fougère":        "70 % terre de bruyère + 30 % terreau plante verte",
+    "Magnolia":       "80 % terre de bruyère + 20 % terreau universel",
+    "Gardénia":       "100 % terre de bruyère",
+    "Kalmia":         "100 % terre de bruyère",
+    # Potager
+    "Tomate":         "100 % terreau potager ou terreau horticole potager",
+    "Courgette":      "100 % terreau potager",
+    "Poivron":        "100 % terreau potager ou terreau horticole potager",
+    "Aubergine":      "100 % terreau potager ou terreau horticole potager",
+    "Salade":         "100 % terreau potager",
+    "Carotte":        "100 % terreau potager (bien meuble, profond)",
+    "Haricot":        "100 % terreau potager",
+    # Arbustes / vivaces jardin
+    "Géranium":       "100 % terreau universel ou terreau plantation en plein sol",
+    "Rose":           "terreau plantation en plein sol, ou 70 % terreau universel + 30 % terre végétale en pot",
+    "Rosier":         "terreau plantation en plein sol, ou 70 % terreau universel + 30 % terre végétale en pot",
+    "Bambou":         "70 % terreau universel + 30 % terre végétale",
 }
 
 def _terreau_context(nom_commun: str, ecosysteme: str = "") -> str:
@@ -680,6 +727,13 @@ def groq_fiche(nom_commun: str, nom_latin: str, wiki: dict, trefle: dict = None)
             if trefle.get(cle):
                 trefle_certifie[champ] = trefle[cle]
 
+    # Composition connue pour cette plante → à injecter directement dans le prompt
+    _compo_connue = ""
+    for _nom_ref, _compo in TERREAU_COMPOSITIONS.items():
+        if _nom_ref.lower() in nom_commun.lower() or nom_commun.lower() in _nom_ref.lower():
+            _compo_connue = f"COMPOSITION TERREAU CONNUE pour {nom_commun} : {_compo}"
+            break
+
     system = (
         f"Tu es botaniste expert francophone. "
         f"Tu génères UNIQUEMENT la fiche de '{nom_commun}' ({nom_latin}). "
@@ -688,19 +742,24 @@ def groq_fiche(nom_commun: str, nom_latin: str, wiki: dict, trefle: dict = None)
         f"Si tu ne connais pas une information, laisse le champ vide ('') plutôt qu'inventer. "
         f"Pour les associations, utilise UNIQUEMENT des noms communs français (ex: 'basilic', 'tomate', 'lavande'). "
         f"JAMAIS de noms latins comme 'Cucurbita', 'Solanum', 'Allium' dans les associations. "
-        f"Pour terreau_recommande : COMMENCE par déduire depuis ecosysteme_naturel de la plante. "
-        f"Règles : garrigue/maquis/aride/méditerranéen → terreau méditerranéen. "
-        f"Forêt tropicale/épiphyte → terreau orchidée + terreau plante verte. "
-        f"Lande/acide/tourbière → terre de bruyère. "
-        f"Désert/semi-aride → terreau cactus + sable. "
-        f"Puis précise le mélange exact en %. "
-        f"Utilise des NOMS DE SACS vendus en jardinerie : "
-        f"'terreau universel', 'terre de bruyère', 'terreau méditerranéen', 'terreau pour cactus et plantes grasses', "
-        f"'terreau pour plantes vertes', 'terreau potager', 'terreau pour orchidées'. "
-        f"Réponds uniquement en JSON valide sans markdown ni backticks."
+        f"\n\nPOUR terreau_recommande — RÈGLES ABSOLUES :"
+        f"\n- Utilise UNIQUEMENT les noms exacts de sacs vendus en jardinerie, sans parenthèses, sans décrire leur composition."
+        f"\n- Noms autorisés : 'terreau universel', 'terre de bruyère', 'terreau méditerranéen', 'terreau cactus',"
+        f"  'terreau plante verte', 'terreau potager', 'terreau horticole potager', 'terreau orchidée',"
+        f"  'terreau plantation', 'terre végétale', 'tourbe', 'pouzzolane', 'bille d'argile'."
+        f"\n- Si mélange : format OBLIGATOIRE '60 % terreau plante verte + 40 % terreau orchidée' (juste les noms, pas d'explication)."
+        f"\n- NE JAMAIS écrire entre parenthèses la composition d'un terreau (ex: INTERDIT 'terreau méditerranéen (70% universel + 30% sable)')."
+        f"\n- Règles par écosystème : garrigue/maquis/méditerranéen → 'terreau méditerranéen'."
+        f"  Forêt tropicale → '60 % terreau plante verte + 40 % terreau orchidée'."
+        f"  Épiphyte → 'terreau orchidée'. Acide/lande → 'terre de bruyère'. Désert → 'terreau cactus'."
+        f"\n{_compo_connue}"
+        f"\nRéponds uniquement en JSON valide sans markdown ni backticks."
     )
 
-    prompt = f"""{wb}{tb}
+    # Injection terreau dans le prompt si composition connue
+    _terreau_hint = f"\nIMPORTANT terreau_recommande pour {nom_commun} : {_compo_connue}" if _compo_connue else ""
+
+    prompt = f"""{wb}{tb}{_terreau_hint}
 
 PLANTE CONCERNÉE : {nom_commun} ({nom_latin})
 CATÉGORIE : {cat} / {sub}
@@ -913,14 +972,17 @@ def groq_enrichir(fiche: dict, champs_manquants: list, wiki: dict, trefle: dict 
 
     return fiche
 
-def _clean_history(messages: list) -> list:
+def _clean_history(messages: list, max_messages: int = 20) -> list:
     """Nettoie l'historique pour Groq : garde UNIQUEMENT role+content.
-    Supprime from_cache, is_alert et toute clé custom ajoutée par l'interface."""
-    return [
+    Supprime from_cache, is_alert et toute clé custom ajoutée par l'interface.
+    Fenêtre glissante : garde les max_messages derniers échanges pour éviter
+    les erreurs 400 'context length exceeded' sur les longues conversations."""
+    cleaned = [
         {"role": m["role"], "content": m.get("content", "")}
         for m in messages
         if m.get("role") in ("user", "assistant") and m.get("content", "").strip()
     ]
+    return cleaned[-max_messages:]
 
 
 def groq_answer(fiche: dict, question: str, history: list) -> str:
@@ -1011,14 +1073,29 @@ def _detecter_plante_dans_message(message: str) -> tuple[str, str] | None:
             return _plant
 
     # ── PRIORITÉ 1 : cherche dans la DB sans appeler Groq ──────────────────────
-    for _w in _mots_longs:
+    # Mots trop courts ou trop génériques pour identifier une plante en DB :
+    # - seuil minimum : 5 caractères (évite "nice", "rose", "rond"…)
+    # - stop-words géographiques / courants qui matchent des sous-chaînes de noms latins
+    _STOP_WORDS_DB = {
+        "nice", "rome", "paris", "lyon", "nord", "rond", "ronde", "rondes",
+        "avec", "pour", "dans", "elle", "elles", "leur", "leurs",
+        "comme", "aussi", "mais", "donc", "alors", "même", "très", "bien",
+        "tout", "tous", "dont", "quand", "comment", "plant", "jardin",
+    }
+    _mots_db = [w for w in _mots_longs if len(w) >= 5 and w not in _STOP_WORDS_DB]
+
+    for _w in _mots_db:
         _hits = search_db(_w)
         for _h in _hits:
             _nc = _h.get("nom_commun", "")
             _nl = _h.get("nom_latin", "")
             if not _nc:
                 continue
-            if _w in _nc.lower() or _nc.lower() in msg_low:
+            # Word boundary matching — évite "nice" ⊂ "lonicera grimpant"
+            _nc_low = _nc.lower()
+            _word_match = bool(re.search(r'\b' + re.escape(_w) + r'\b', _nc_low))
+            _phrase_match = _nc_low in msg_low
+            if _word_match or _phrase_match:
                 print(f"[DETECT DB] '{_nc}' trouvé en DB pour mot '{_w}'")
                 return _nc, _nl
     # ───────────────────────────────────────────────────────────────────────────
@@ -1182,9 +1259,17 @@ def identify_photo(image_bytes: bytes) -> tuple[list, str]:
     if not PLANTNET_KEY:
         return None, "⚠️ PLANTNET_API_KEY manquante dans le fichier .env"
     try:
+        # Détection MIME réelle (réutilise la même logique que groq_vision_chat)
+        def _detect_mime_local(b: bytes) -> str:
+            if b[:8] == b'\x89PNG\r\n\x1a\n': return "image/png"
+            if b[:4] == b'RIFF' and b[8:12] == b'WEBP': return "image/webp"
+            return "image/jpeg"
+        _mime = _detect_mime_local(image_bytes)
+        _ext  = {"image/png": "photo.png", "image/webp": "photo.webp"}.get(_mime, "photo.jpg")
+
         r = requests.post(
             f"https://my-api.plantnet.org/v2/identify/all?api-key={PLANTNET_KEY}&lang=fr",
-            files=[("images",("photo.jpg",image_bytes,"image/jpeg"))],
+            files=[("images", (_ext, image_bytes, _mime))],
             data={"organs":["auto"]}, timeout=30
         )
         r.raise_for_status()
@@ -1228,6 +1313,82 @@ def identify_photo(image_bytes: bytes) -> tuple[list, str]:
 # ══════════════════════════════════════════════════════════════════
 # PIPELINES PRINCIPAUX
 # ══════════════════════════════════════════════════════════════════
+def _terreau_pour_plante(nom_commun: str, nom_latin: str, categorie: str = "") -> str:
+    """
+    Retourne le terreau recommandé pour une plante.
+    Priorité : TERREAU_COMPOSITIONS (exact) → nom latin genre → catégorie → ""
+    """
+    # 1. Recherche exacte dans TERREAU_COMPOSITIONS
+    for cle, compo in TERREAU_COMPOSITIONS.items():
+        if cle.lower() in nom_commun.lower() or nom_commun.lower() in cle.lower():
+            return compo
+
+    # 2. Recherche par genre latin (ex: "Lavandula" → "Lavande")
+    genre_latin = nom_latin.lower().split()[0] if nom_latin else ""
+    _correspondances_genre = {
+        "lavandula": "100 % terreau méditerranéen",
+        "salvia rosmarinus": "100 % terreau méditerranéen",
+        "thymus": "100 % terreau méditerranéen",
+        "origanum": "100 % terreau méditerranéen",
+        "cistus": "100 % terreau méditerranéen",
+        "olea": "100 % terreau méditerranéen",
+        "agave": "60 % terreau méditerranéen + 40 % pouzzolane",
+        "aloe": "60 % terreau cactus + 40 % pouzzolane",
+        "echeveria": "60 % terreau cactus + 40 % pouzzolane",
+        "sedum": "60 % terreau cactus + 40 % pouzzolane",
+        "sempervivum": "60 % terreau cactus + 40 % pouzzolane",
+        "opuntia": "60 % terreau cactus + 40 % pouzzolane",
+        "mammillaria": "60 % terreau cactus + 40 % pouzzolane",
+        "rhododendron": "100 % terre de bruyère",
+        "hydrangea": "80 % terre de bruyère + 20 % terreau universel",
+        "camellia": "100 % terre de bruyère",
+        "pieris": "100 % terre de bruyère",
+        "vaccinium": "100 % terre de bruyère",
+        "phalaenopsis": "100 % terreau orchidée",
+        "dendrobium": "100 % terreau orchidée",
+        "orchid": "100 % terreau orchidée",
+        "monstera": "60 % terreau plante verte + 40 % terreau orchidée",
+        "philodendron": "70 % terreau plante verte + 30 % terreau orchidée",
+        "calathea": "70 % terreau plante verte + 30 % tourbe",
+        "dracaena": "100 % terreau plante verte",
+        "ficus": "100 % terreau plante verte",
+        "solanum lycopersicum": "100 % terreau potager",
+        "cucurbita": "100 % terreau potager",
+        "lactuca": "100 % terreau potager",
+        "brassica": "100 % terreau potager",
+    }
+    for k, v in _correspondances_genre.items():
+        if genre_latin.startswith(k[:6]) or k in nom_latin.lower():
+            return v
+
+    # 3. Fallback par catégorie
+    _terreau_par_categorie = {
+        "plantes_vertes":       "terreau plante verte",
+        "plantes_grasses":      "60 % terreau cactus + 40 % pouzzolane",
+        "rosiers":              "terreau plantation ou terreau universel enrichi",
+        "plantes_grimpantes":   "terreau universel",
+        "plantes_aromatiques":  "terreau méditerranéen ou terreau universel selon l'espèce",
+        "potageres":            "terreau potager",
+        "plantes_aquatiques":   "terre végétale ou terreau de bassin (sans tourbe)",
+        "plantes_aquarium":     "substrat spécial aquarium (gravillon fin ou sable de rivière)",
+        "plantes_carnivores":   "50 % tourbe blonde non fertilisée + 50 % sable de rivière — JAMAIS de terreau classique",
+        "arbres_arbustes":      "terreau plantation + terre végétale",
+        "graminees":            "terreau universel",
+        "fougeres":             "70 % terre de bruyère + 30 % terreau plante verte",
+        "plantes_vivaces":      "terreau universel ou terreau plantation",
+        "plantes_annuelles":    "terreau universel",
+        "plantes_bisannuelles": "terreau universel",
+        "plantes_sauvages":     "terre végétale ou en pleine terre directement",
+        "plantes_eco_solution": "terreau universel ou en pleine terre",
+        "chrysanthemes":        "terreau universel",
+        "plantes_fetes":        "terreau universel",
+    }
+    if categorie in _terreau_par_categorie:
+        return _terreau_par_categorie[categorie]
+
+    return ""
+
+
 def get_or_create_fiche(nom_commun: str, nom_latin: str) -> tuple[dict, bool]:
     """
     Pipeline complet :
@@ -1238,6 +1399,9 @@ def get_or_create_fiche(nom_commun: str, nom_latin: str) -> tuple[dict, bool]:
     5. Groq          → synthèse + enrichissement francophone
     6. Sauvegarde
     """
+    # Valeurs par défaut — seront écrasées par les valeurs DB si la fiche existe
+    nom_commun_db = nom_commun
+    nom_latin_db  = nom_latin
     cached = load_from_db(nom_latin, nom_commun)
     if cached:
         # ══ LATIN EN PREMIER : si le nom latin correspond → fiche valide ══════
@@ -1295,7 +1459,7 @@ def get_or_create_fiche(nom_commun: str, nom_latin: str) -> tuple[dict, bool]:
                         print(f"[ANTI-CONTAM NUCL.] '{nom_commun}' — champ contaminé détecté → régénération complète")
                         # Supprimer le fichier DB corrompu pour forcer un pipeline complet
                         from memory import _safe, DB_ROOT
-                        _cat = cached.get("categorie", "ornement")
+                        _cat = cached.get("categorie", "plantes_vivaces")
                         _sub = cached.get("sous_categorie", "divers")
                         _bad_path = DB_ROOT / _cat / _sub / f"{_safe(cached.get('nom_latin','unknown'))}.json"
                         if _bad_path.exists():
@@ -1349,6 +1513,16 @@ def get_or_create_fiche(nom_commun: str, nom_latin: str) -> tuple[dict, bool]:
             c for c in CHAMPS_ESSENTIELS
             if not cached.get(c) or cached.get(c) == [] or cached.get(c) == ""
         ]
+
+        # ── TERREAU : pré-remplir depuis TERREAU_COMPOSITIONS avant Groq ────
+        # Évite de dépendre de groq_enrichir pour un info qu'on connaît déjà
+        if "terreau_recommande" in champs_vides:
+            _compo = _terreau_pour_plante(nom_commun_db, nom_latin_db, cached.get("categorie", ""))
+            if _compo:
+                cached["terreau_recommande"] = _compo
+                champs_vides.remove("terreau_recommande")
+                needs_save = True
+        # ─────────────────────────────────────────────────────────────────────
         # Ajoute les associations vides (après nettoyage genres latins) si pas déjà dedans
         for _af in ("associations_benefiques", "associations_incompatibles", "plantes_meme_ecosysteme"):
             if (not cached.get(_af) or cached.get(_af) == []) and _af not in champs_vides:
@@ -1427,6 +1601,13 @@ def get_or_create_fiche(nom_commun: str, nom_latin: str) -> tuple[dict, bool]:
         if trefle.get("toxicite_trefle"):
             fiche["toxicite_trefle"] = trefle["toxicite_trefle"]
 
+    # ── Terreau : pré-remplir si Groq n'a pas réussi à le renseigner ──────────
+    if not fiche.get("terreau_recommande"):
+        _compo = _terreau_pour_plante(nom_commun, nom_latin, fiche.get("categorie", ""))
+        if _compo:
+            fiche["terreau_recommande"] = _compo
+    # ──────────────────────────────────────────────────────────────────────────
+
     save_to_db(fiche)
     return fiche, False
 
@@ -1488,9 +1669,12 @@ def _enrichir_depuis_reponse(fiche: dict, question: str, answer: str):
         for mois in ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"]:
             if mois in answer.lower():
                 idx = answer.lower().index(mois)
-                fiche["floraison"] = answer[max(0,idx-20):idx+60].strip()
-                enrichi = True
-                break
+                # Fenêtre autour du mois — on vérifie que c'est bien un contexte de floraison
+                fenetre = answer[max(0,idx-40):idx+80].lower()
+                if any(k in fenetre for k in ["floraison","fleurit","fleur","fleurs","bouton"]):
+                    fiche["floraison"] = answer[max(0,idx-20):idx+60].strip()
+                    enrichi = True
+                    break
 
     if not fiche.get("exposition") and any(w in q for w in ["soleil","ombre","exposition","lumière"]):
         for val in ["plein soleil","mi-ombre","ombre totale","ombre partielle"]:
@@ -1504,13 +1688,14 @@ def _enrichir_depuis_reponse(fiche: dict, question: str, answer: str):
         save_to_db(fiche)
 
 
-def groq_chat(messages: list, context_filters: list = None) -> tuple[str, dict | None]:
+def groq_chat(messages: list, context_filters: list = None, fiche_hint: dict = None) -> tuple[str, dict | None]:
     """
     Chat libre intelligent :
     1. Valide le message
     2. Détecte si une plante est mentionnée
     3. Si oui → crée/enrichit la fiche (wiki + trefle + groq)
-    4. Répond avec le contexte de la fiche si disponible
+    4. Si non et fiche_hint fourni → réutilise le contexte de la fiche précédente
+    5. Répond avec le contexte de la fiche si disponible
     """
     err = _validate_question(messages)
     if err:
@@ -1521,23 +1706,56 @@ def groq_chat(messages: list, context_filters: list = None) -> tuple[str, dict |
 
     fiche_contexte = None
     contexte_fiche = ""
+    nom_c = ""
+    nom_l = ""
 
     if plante_info:
         nom_c, nom_l = plante_info
         fiche_contexte, _ = get_or_create_fiche(nom_c, nom_l or nom_c)
+    elif fiche_hint:
+        # ── Continuité de contexte : réutilise la fiche de la dernière plante
+        # UNIQUEMENT si le message ressemble à une question de suivi.
+        # Critères : message court (≤8 mots) OU commence par un mot de liaison.
+        # Évite d'injecter le contexte tomate quand l'utilisateur change de sujet.
+        _MOTS_CONTINUATION = {
+            "et", "aussi", "comment", "pourquoi", "quel", "quelle", "quels", "quelles",
+            "quand", "alors", "donc", "mais", "encore", "sinon", "autrement",
+            "combien", "depuis", "pendant", "après", "avant", "ok", "okay",
+        }
+        _mots_msg = dernier.lower().split()
+        _est_court = len(_mots_msg) <= 8
+        _commence_par_liaison = bool(_mots_msg) and _mots_msg[0] in _MOTS_CONTINUATION
+        if _est_court or _commence_par_liaison:
+            fiche_contexte = fiche_hint
+            nom_c = fiche_hint.get("nom_commun", "")
+            print(f"[HINT] Continuation → fiche '{nom_c}' réutilisée pour : '{dernier[:40]}'")
+        else:
+            print(f"[HINT] Message hors-contexte → fiche_hint ignorée : '{dernier[:40]}'")
+
+    if fiche_contexte:
+        nom_c = fiche_contexte.get("nom_commun", nom_c if plante_info else "")
         trefle = fiche_contexte.get("trefle", {})
         # ⚠️ On injecte UNIQUEMENT les données techniques dans le contexte.
         # Les associations/incompatibilités NE sont pas injectées ici :
         # elles seront mentionnées par Groq SEULEMENT si l'utilisateur les demande.
+        # Les champs vides sont exclus pour éviter le bruit dans le prompt.
+        def _ctx_line(label: str, key: str) -> str:
+            val = fiche_contexte.get(key, "")
+            if isinstance(val, list): val = ", ".join(str(x) for x in val if x)
+            return f"- {label} : {val}" if val else ""
+        _ctx_lines = [
+            _ctx_line("Exposition",       "exposition"),
+            _ctx_line("Sol",              "sol_type"),
+            _ctx_line("Terreau",          "terreau_recommande"),
+            _ctx_line("Arrosage",         "arrosage_frequence"),
+            _ctx_line("Résistance froid", "resistance_froid"),
+            _ctx_line("Hauteur",          "hauteur_adulte"),
+            _ctx_line("Floraison",        "floraison"),
+        ]
+        _ctx_body = "\n".join(l for l in _ctx_lines if l)
         contexte_fiche = f"""
 Fiche technique disponible pour {nom_c} :
-- Exposition : {fiche_contexte.get('exposition','')}
-- Sol : {fiche_contexte.get('sol_type','')}
-- Terreau : {fiche_contexte.get('terreau_recommande','')}
-- Arrosage : {fiche_contexte.get('arrosage_frequence','')}
-- Résistance froid : {fiche_contexte.get('resistance_froid','')}
-- Hauteur : {fiche_contexte.get('hauteur_adulte','')}
-- Floraison : {fiche_contexte.get('floraison','')}
+{_ctx_body}
 {_wiki_block(fiche_contexte.get('wiki',{}), nom_c)}
 {_trefle_block(trefle, nom_c)}
 {get_context(fiche_contexte, dernier)}"""
@@ -1591,7 +1809,8 @@ RÈGLES STRICTES :
 - Si toxique ou danger : commence OBLIGATOIREMENT par ⚠️ ATTENTION.
 - RÉPONDS UNIQUEMENT à ce qui est demandé. Si on ne demande pas les associations ou incompatibilités, N'EN PARLE PAS.
 - Toujours écrire nom commun suivi du nom latin entre parenthèses.
-- Pour le substrat : utilise des noms commerciaux (terreau universel, terre de bruyère, terreau méditerranéen, terreau cactus…).
+- Pour le substrat : utilise UNIQUEMENT les noms commerciaux exacts : terreau universel, terre de bruyère, terreau méditerranéen, terreau cactus, terreau potager, terreau horticole potager, terreau plante verte, terreau orchidée, terreau plantation, terre végétale, tourbe. Ajoute pouzzolane ou billes d'argile en amendement si nécessaire.
+- MÉLANGES : si la plante nécessite un mélange, dis-le toujours avec les proportions (ex: "60 % terreau plante verte + 40 % terreau orchidée").
 - Pour les conseils pratiques : gestes concrets, saisons précises.
 - Si tu ne comprends pas clairement la question, indique brièvement ce que tu as compris et réponds de ton mieux.
 - Ne répète pas les informations déjà données.
@@ -1608,20 +1827,14 @@ RÈGLES STRICTES :
         _enrichir_depuis_reponse(fiche_contexte, dernier, reponse)
 
         # ── CORRECTION NOM CORROMPU ─────────────────────────────────────────────
-        # Si le nom_commun de la fiche n'apparaît pas dans le message,
-        # c'est qu'il est corrompu (ex: "Saucisse" pour une question sur "sauge").
-        # On utilise le nom détecté par _detecter_plante et on corrige en DB.
+        # Corrige UNIQUEMENT si le nom_commun est clairement une non-plante
+        # (ex: "Saucisse", "Viande"…) — évite d'écraser un nom valide comme
+        # "Tomate" dans un message de continuation "et les portugaise ?".
         if plante_info:
             _fc_nom = fiche_contexte.get("nom_commun", "")
-            _msg_lower = dernier.lower()
-            _nom_ok = any(
-                mot in _msg_lower
-                for mot in _fc_nom.lower().split()
-                if len(mot) >= 4
-            )
-            if not _nom_ok:
+            if _fc_nom.lower() in _NON_PLANTES:
                 _nom_detecte = plante_info[0]
-                print(f"[REPAIR] nom corrompu '{_fc_nom}' → '{_nom_detecte}' (message: {dernier[:30]})")
+                print(f"[REPAIR] nom non-plante '{_fc_nom}' → '{_nom_detecte}' (message: {dernier[:30]})")
                 fiche_contexte["nom_commun"] = _nom_detecte
                 save_to_db(fiche_contexte)
         # ────────────────────────────────────────────────────────────────────────
@@ -1643,6 +1856,17 @@ def groq_vision_chat(image_bytes: bytes, question: str, history: list) -> str:
     if not GROQ_KEY:
         return "⚠️ GROQ_API_KEY manquante."
 
+    # Détection du type MIME réel (évite d'envoyer PNG/WEBP en JPEG)
+    def _detect_mime(b: bytes) -> str:
+        if b[:8] == b'\x89PNG\r\n\x1a\n':
+            return "image/png"
+        if b[:4] == b'RIFF' and b[8:12] == b'WEBP':
+            return "image/webp"
+        if b[:6] in (b'GIF87a', b'GIF89a'):
+            return "image/gif"
+        return "image/jpeg"
+
+    mime_type = _detect_mime(image_bytes)
     b64 = base64.b64encode(image_bytes).decode()
 
     system = """Tu es un expert botaniste, phytopathologiste et pédologue passionné.
@@ -1665,7 +1889,7 @@ RÈGLES STRICTES :
     user_content = [
         {
             "type": "image_url",
-            "image_url": {"url": f"data:image/jpeg;base64,{b64}"}
+            "image_url": {"url": f"data:{mime_type};base64,{b64}"}
         },
         {
             "type": "text",
@@ -1701,6 +1925,83 @@ RÈGLES STRICTES :
 # MODE CRÉATEUR — chat admin pour le développeur de Slothia
 # ══════════════════════════════════════════════════════════════════
 ADMIN_KEYWORD = "akiran01"
+
+# Mapping noms naturels → clés JSON de la fiche
+_ADMIN_CHAMP_MAP = {
+    "terreau": "terreau_recommande", "substrat": "terreau_recommande",
+    "terreau_recommande": "terreau_recommande",
+    "exposition": "exposition", "lumière": "exposition", "expo": "exposition",
+    "arrosage": "arrosage_frequence", "eau": "arrosage_frequence",
+    "arrosage_frequence": "arrosage_frequence",
+    "résistance au froid": "resistance_froid", "rusticité": "resistance_froid",
+    "froid": "resistance_froid", "gel": "resistance_froid",
+    "resistance_froid": "resistance_froid",
+    "hauteur": "hauteur_adulte", "taille": "hauteur_adulte",
+    "hauteur_adulte": "hauteur_adulte",
+    "floraison": "floraison",
+    "description": "description",
+    "sol": "sol_type", "type de sol": "sol_type", "sol_type": "sol_type",
+    "ph": "sol_ph", "sol_ph": "sol_ph",
+    "associations": "associations_benefiques",
+    "associations_benefiques": "associations_benefiques",
+    "incompatibilités": "associations_incompatibles",
+    "associations_incompatibles": "associations_incompatibles",
+    "maladies": "maladies_courantes", "maladies_courantes": "maladies_courantes",
+    "ravageurs": "ravageurs",
+    "conseil plantation": "conseil_plantation", "plantation": "conseil_plantation",
+    "conseil_plantation": "conseil_plantation",
+    "entretien": "conseil_entretien", "conseil_entretien": "conseil_entretien",
+    "origine": "origine_naturelle", "origine_naturelle": "origine_naturelle",
+    "ecosysteme": "ecosysteme_naturel", "écosystème": "ecosysteme_naturel",
+    "ecosysteme_naturel": "ecosysteme_naturel",
+    "famille": "famille",
+}
+
+def admin_apply_edit(plante: str, champ: str, valeur) -> str:
+    """
+    Applique une modification d'un champ de fiche depuis le mode admin.
+    Retourne un message de confirmation ou d'erreur.
+    """
+    # Normaliser le nom du champ
+    champ_norm = _ADMIN_CHAMP_MAP.get(champ.lower().strip(), champ.lower().strip())
+
+    # Trouver la fiche en DB
+    fiche = load_from_db(plante, plante)
+    if not fiche:
+        # Cherche par search_db
+        from memory import search_db
+        hits = search_db(plante.lower())
+        for h in hits:
+            nc = h.get("nom_commun", "").lower()
+            if plante.lower() in nc or nc in plante.lower():
+                fiche = h
+                break
+
+    if not fiche:
+        return f"❌ Plante '{plante}' introuvable en DB."
+
+    nom_db = fiche.get("nom_commun", plante)
+    ancienne_valeur = fiche.get(champ_norm, "")
+
+    # Appliquer la modification
+    fiche[champ_norm] = valeur
+
+    # Pour les listes (associations), convertir si nécessaire
+    if champ_norm in ("associations_benefiques", "associations_incompatibles", "plantes_meme_ecosysteme", "tags"):
+        if isinstance(valeur, str):
+            fiche[champ_norm] = [v.strip() for v in valeur.split(",") if v.strip()]
+
+    # Marquer comme modifié manuellement
+    fiche["source"] = fiche.get("source", "") + "+admin_edit"
+    save_to_db(fiche)
+
+    return (
+        f"✅ Fiche '{nom_db}' mise à jour !\n"
+        f"   Champ : {champ_norm}\n"
+        f"   Avant : {str(ancienne_valeur)[:80] or '(vide)'}\n"
+        f"   Après : {str(valeur)[:80]}"
+    )
+
 
 def groq_chat_admin(messages: list, session_info: dict = None) -> str:
     """
@@ -1743,12 +2044,41 @@ def groq_chat_admin(messages: list, session_info: dict = None) -> str:
         for u in unresolved[-5:]:
             _unresolved_str += "\n  * Q: " + repr(u.get('question','')[:60]) + " -> R: " + repr(u.get('reponse','')[:80])
 
+    # ── Détection de plante + création/enrichissement de fiche (comme en mode normal) ──
+    dernier = messages[-1].get("content", "") if messages else ""
+    _fiche_admin = None
+    _fiche_notif = ""
+    try:
+        plante_info = _detecter_plante_dans_message(dernier)
+        if plante_info:
+            nom_c, nom_l = plante_info
+            _fiche_admin, _est_cached = get_or_create_fiche(nom_c, nom_l or nom_c)
+            if not _est_cached:
+                _fiche_notif = f"\n\n🌿 Nouvelle fiche créée en DB : **{nom_c}** ({nom_l})"
+            else:
+                _fiche_notif = f"\n\n📋 Fiche existante chargée : **{_fiche_admin.get('nom_commun', nom_c)}**"
+    except Exception as _e:
+        _fiche_notif = f"\n\n⚠️ Erreur création fiche : {_e}"
+
+    # Injecter le contexte fiche dans le rapport si disponible
+    _fiche_ctx = ""
+    if _fiche_admin:
+        _fiche_ctx = f"""
+FICHE CHARGÉE POUR CETTE SESSION :
+- Plante : {_fiche_admin.get('nom_commun','')} ({_fiche_admin.get('nom_latin','')})
+- Exposition : {_fiche_admin.get('exposition','')}
+- Terreau : {_fiche_admin.get('terreau_recommande','')}
+- Arrosage : {_fiche_admin.get('arrosage_frequence','')}
+- Résistance froid : {_fiche_admin.get('resistance_froid','')}
+- Source : {_fiche_admin.get('source','')}
+- Champs vides : {[c for c in CHAMPS_ESSENTIELS if not _fiche_admin.get(c)]}"""
+
     rapport = f"""
 RAPPORT SYSTÈME SLOTHIA — SESSION ACTUELLE :
 ⚠️ IMPORTANT : tu n'as AUCUN accès aux conversations d'autres utilisateurs.
 Ne fais JAMAIS de suppositions sur d'autres personnes. Si tu n'as pas l'info, dis "je ne sais pas".
 {mem_diff}
-
+{_fiche_ctx}
 ÉTAT ACTUEL :
 - Base de données : {nb_total} fiche(s) | Répartition : {cat_str}
 - Plantes dans le jardin (session) : {nb_jardin}
@@ -1772,6 +2102,19 @@ COMPORTEMENT EN MODE CRÉATEUR :
 - Si la question porte sur les plantes : réponds normalement, avec peut-être un commentaire personnel en passant.
 - NE MENS JAMAIS sur ce que tu sais ou ne sais pas. Si tu n'as pas l'info, dis-le clairement.
 
+MODIFICATION DE FICHES (TRÈS IMPORTANT) :
+- Si le créateur te donne une info à enregistrer pour une plante (terreau, exposition, arrosage, description, associations…),
+  tu VALIDES d'abord l'info (esprit critique), PUIS si elle est correcte tu émets un bloc spécial à la FIN de ta réponse :
+  [EDIT:{{"plante":"NomCommun","champ":"nom_champ","valeur":"la valeur à enregistrer"}}]
+- Champs disponibles : terreau_recommande, exposition, arrosage_frequence, resistance_froid, hauteur_adulte,
+  floraison, description, sol_type, sol_ph, maladies_courantes, ravageurs, conseil_plantation,
+  conseil_entretien, associations_benefiques, associations_incompatibles, origine_naturelle, ecosysteme_naturel
+- Pour associations_benefiques / associations_incompatibles : la valeur est une liste séparée par des virgules
+- N'émets le bloc [EDIT:...] QUE si l'info est botaniqueent correcte et que le créateur a clairement demandé à enregistrer
+- Si tu refus d'enregistrer (info fausse), explique pourquoi — ne mets PAS de bloc [EDIT:...]
+- Exemple : créateur dit "enregistre que la lavande aime le terreau méditerranéen"
+  → tu valides → tu réponds → tu ajoutes [EDIT:{{"plante":"Lavande","champ":"terreau_recommande","valeur":"100 % terreau méditerranéen"}}]
+
 ESPRIT CRITIQUE OBLIGATOIRE — MODIFICATIONS DE FICHES :
 - Si le créateur t'annonce une info sur une plante (terreau, sol, exposition, entretien…), NE L'ACCEPTE PAS AVEUGLÉMENT.
 - Vérifie d'abord contre ce que tu connais : l'écosystème naturel de la plante, son origine géographique, ses caractéristiques biologiques.
@@ -1780,16 +2123,48 @@ ESPRIT CRITIQUE OBLIGATOIRE — MODIFICATIONS DE FICHES :
 - Si tu doutes, dis "je ne suis pas sûr, voilà pourquoi" et propose de vérifier.
 - Un créateur bien intentionné peut se tromper — ton rôle est de l'aider à donner de bonnes infos aux utilisateurs, pas de valider n'importe quoi.
 
-RÉFÉRENTIEL TERREAU (utilise-le pour vérifier les infos substrate) :
-- terre de bruyère : plantes acides (pH 4–6) — rhododendron, azalée, camélia, hortensia, fougère
-- terreau méditerranéen : plantes arides/calcaires (pH 6.5–8) — lavande, yucca, olivier, cordyline, agapanthe, laurier-rose
-- terreau orchidée : épiphytes tropicaux — orchidée, anthurium, philodendron (en mélange)
-- terreau plante verte : forêt tropicale humide — monstera, pothos, dracaena, calathea
-- terreau cactus : désert/semi-aride — cactus, succulentes, aloe
-Si une plante méditerranéenne se voit attribuer de la terre de bruyère → FAUX, corrige.
+RÉFÉRENTIEL SUBSTRATS (noms exacts des sacs en magasin) :
+- terreau universel : usage général, pH 6–7
+- terreau méditerranéen : aride/calcaire pH 6.5–8 — lavande, yucca, olivier, cordyline, thym, romarin
+- terre de bruyère : acide pH 4–6 — rhododendron, azalée, camélia, hortensia, myrtille
+- terre végétale : plein sol/massifs, dense, pH 6–7
+- terreau plantation : stimule la reprise en plein sol
+- tourbe : acide pur pH 3.5–5, toujours en mélange
+- terreau plante verte : forêt tropicale pH 6–7 — monstera, pothos, dracaena, calathea
+- terreau cactus : désert/semi-aride pH 6–7 — cactus, succulentes, aloe
+- terreau horticole potager : professionnel riche — tomate, poivron, aubergine
+- terreau potager : potager amateur pH 6–7
+- terreau orchidée : écorces de pin pH 5.5–6.5 — orchidée, phalaenopsis, anthurium
+- pouzzolane : roche volcanique, AMENDEMENT de drainage — jamais seule
+- bille d'argile : AMENDEMENT fond de pot ou hydroponique — jamais seule
+MÉLANGES OBLIGATOIRES (toujours suggérer un mélange si la plante en a besoin) :
+- Monstera → 60 % terreau plante verte + 40 % terreau orchidée + billes d'argile au fond
+- Cactus/Succulente → 60 % terreau cactus + 40 % pouzzolane
+- Orchidée → 100 % terreau orchidée, JAMAIS de terreau classique
+- Hortensia → 80 % terre de bruyère + 20 % terreau universel
+Si une plante méditerranéenne reçoit de la terre de bruyère → FAUX, corrige.
 {rapport}"""
 
-    return _groq(_clean_history(messages), system)
+    raw = _groq(_clean_history(messages), system)
+
+    # ── Détecter et appliquer un bloc [EDIT:{...}] si présent ──────────────────
+    edit_match = re.search(r'\[EDIT:(\{[^}]+\})\]', raw)
+    edit_confirmation = ""
+    if edit_match:
+        try:
+            edit_data = json.loads(edit_match.group(1))
+            plante = edit_data.get("plante", "")
+            champ  = edit_data.get("champ", "")
+            valeur = edit_data.get("valeur", "")
+            if plante and champ and valeur:
+                edit_confirmation = "\n\n" + admin_apply_edit(plante, champ, valeur)
+        except Exception as e:
+            edit_confirmation = f"\n\n⚠️ Modification non appliquée (erreur parsing) : {e}"
+        # Supprimer le bloc technique de la réponse visible
+        raw = re.sub(r'\s*\[EDIT:\{[^}]+\}\]', '', raw).strip()
+
+    return raw + edit_confirmation + _fiche_notif
+    # ───────────────────────────────────────────────────────────────────────────
 
 
 # ══════════════════════════════════════════════════════════════════

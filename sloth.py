@@ -1,7 +1,3 @@
-"""
-sloth.py — Paresseux Mascotte Slothia
-Mascotte dessinée à la main 🎨
-"""
 
 import datetime
 

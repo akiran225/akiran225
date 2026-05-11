@@ -1,0 +1,54 @@
+{
+  "last_visit": "2026-05-11T19:24",
+  "db_total": 1517,
+  "db_par_categorie": {
+    "arbres_arbustes": 122,
+    "chrysanthemes": 1,
+    "fougeres": 17,
+    "graminees": 35,
+    "ornement": 407,
+    "plantes_annuelles": 60,
+    "plantes_aquarium": 24,
+    "plantes_aquatiques": 32,
+    "plantes_aromatiques": 41,
+    "plantes_bisannuelles": 15,
+    "plantes_carnivores": 8,
+    "plantes_eco_solution": 16,
+    "plantes_fetes": 12,
+    "plantes_grasses": 32,
+    "plantes_grimpantes": 20,
+    "plantes_sauvages": 122,
+    "plantes_vertes": 65,
+    "plantes_vivaces": 421,
+    "potageres": 47,
+    "rosiers": 20
+  },
+  "nb_jardin": 0,
+  "nb_history": 2,
+  "last_messages": [
+    {
+      "role": "user",
+      "content": "et l'ernest markham"
+    },
+    {
+      "role": "assistant",
+      "content": "La clématite (Clematis) 'Ernest Markham' est une variété de clématite à grandes fleurs roses vif, avec des pétales légèrement ondulées. Elle aime une exposition ensoleillée à mi-ombrage et un sol rich"
+    },
+    {
+      "role": "assistant",
+      "content": "🔧 Bonjour créateur ! Content de te voir. Qu'est-ce qui t'amène aujourd'hui — un bug à investiguer, un retour sur mon comportement, ou juste une conversation libre ?"
+    },
+    {
+      "role": "user",
+      "content": "parle moi de toi ?"
+    },
+    {
+      "role": "assistant",
+      "content": "Moi ? Eh bien, je suis Slothia, une application botanique IA créée par toi, mon créateur ! Je suis là pour aider les utilisateurs à comprendre et à prendre soin de leurs plantes, en leur fournissant d"
+    },
+    {
+      "role": "user",
+      "content": "et dis moi est ce que tu es content de la maniere dont tu fonctionne est ce que tu vois des amelioration ?"
+    }
+  ]
+}

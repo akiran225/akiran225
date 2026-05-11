@@ -1,0 +1,63 @@
+{
+  "nom_commun": "Lonicera grimpant",
+  "nom_latin": "Lonicera japonica",
+  "famille": "",
+  "categorie": "plantes_grimpantes",
+  "sous_categorie": "lonicera",
+  "description": "La Lonicera grimpant est une plante grimpante à feuilles persistantes, produisant des fleurs parfumées en forme de trompette",
+  "origine_naturelle": "",
+  "ecosysteme_naturel": "",
+  "exposition": "mi-ombre",
+  "sol_type": "sol bien drainé",
+  "sol_ph": "",
+  "terreau_recommande": "terreau universel",
+  "arrosage": "",
+  "arrosage_frequence": "modéré — arrosage hebdomadaire",
+  "resistance_froid": "résistante jusqu'à -10°C",
+  "zone_rusticite": "",
+  "hauteur_adulte": "jusqu'à 6 mètres",
+  "croissance": "",
+  "taille": "",
+  "floraison": "de juin à septembre",
+  "fructification": "",
+  "biodiversite": "",
+  "insectes_attires": "",
+  "oiseaux_attires": "",
+  "associations_benefiques": [
+    "rosier",
+    "lavande"
+  ],
+  "associations_incompatibles": [
+    "plante à feuilles larges"
+  ],
+  "plantes_meme_ecosysteme": [
+    "hortensia",
+    "vigne vierge"
+  ],
+  "maladies_courantes": "",
+  "ravageurs": "",
+  "conseil_plantation": "",
+  "conseil_entretien": "",
+  "tags": [],
+  "wiki": {
+    "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Lonicera_japonicum1.jpg/330px-Lonicera_japonicum1.jpg"
+  },
+  "qa_memory": {
+    "divers": [
+      {
+        "question": "et les courgettes rondes de nice ?",
+        "answer": "Les courgettes rondes de Nice, également appelées courgettes \"Cucurbita pepo\", sont une variété de courgette originaire de la région de Nice. Elles sont connues pour leur forme ronde et leur saveur délicate. Pour les cultiver, utilisez un terreau universel avec 100 % de terreau potager ou terreau horticole potager, et assurez-les une exposition en plein soleil pendant la saison estivale, avec un arrosage régulier.",
+        "category": "divers",
+        "has_alert": false
+      }
+    ]
+  },
+  "source": "error:Expecting value: line 1 column 1 (char 0)+enrichi",
+  "trefle": {
+    "source_trefle": true,
+    "exposition": "mi-ombre",
+    "arrosage_frequence": "modéré — arrosage hebdomadaire",
+    "sol_ph": "pH 4.9–8.3",
+    "famille_trefle": "Caprifoliaceae"
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "nom_commun": "Courgette",
+  "nom_latin": "Cucurbita pepo",
+  "famille": "",
+  "categorie": "potageres",
+  "sous_categorie": "courgette",
+  "description": "La Courgette est une plante annuelle à feuilles palmées et à tiges rampantes, produisant des fruits allongés et comestibles.",
+  "origine_naturelle": "",
+  "ecosysteme_naturel": "",
+  "exposition": "Soleil plein ou mi-ombre",
+  "sol_type": "Terreau universel avec un mélange de terreau potager",
+  "sol_ph": "",
+  "terreau_recommande": "100 % terreau potager",
+  "arrosage": "",
+  "arrosage_frequence": "Régulier, environ 2 à 3 fois par semaine",
+  "resistance_froid": "Sensible au froid, à planter après les dernières gelées",
+  "zone_rusticite": "",
+  "hauteur_adulte": "Environ 1 mètre",
+  "croissance": "",
+  "taille": "",
+  "floraison": "De juin à septembre, avec des fleurs jaunes",
+  "fructification": "",
+  "biodiversite": "",
+  "insectes_attires": "",
+  "oiseaux_attires": "",
+  "associations_benefiques": [],
+  "associations_incompatibles": [],
+  "plantes_meme_ecosysteme": [],
+  "maladies_courantes": "",
+  "ravageurs": "",
+  "conseil_plantation": "",
+  "conseil_entretien": "",
+  "tags": [],
+  "wiki": {
+    "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a6/Cucurbita_pepo_collage_1.png/330px-Cucurbita_pepo_collage_1.png"
+  },
+  "qa_memory": {
+    "divers": [
+      {
+        "question": "salut parle moi de la courgette lonngue de nice",
+        "answer": "La courgette (Cucurbita pepo) longue de Nice est une variété de courgette très appréciée pour sa longueur et sa saveur délicate. Elle préfère une exposition ensoleillée et un sol bien drainé, comme un mélange de terreau universel et de terreau potager. Il est important de l'arroser régulièrement, environ 2 à 3 fois par semaine, et de la planter après les dernières gelées.",
+        "category": "divers",
+        "has_alert": false
+      }
+    ]
+  },
+  "source": "error:Expecting value: line 1 column 1 (char 0)+enrichi",
+  "trefle": {
+    "source_trefle": true,
+    "famille_trefle": "Cucurbitaceae"
+  }
+}

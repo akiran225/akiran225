@@ -1,0 +1,59 @@
+{
+  "nom_commun": "Nénuphar",
+  "nom_latin": "Nymphaea",
+  "famille": "Nymphaeaceae",
+  "categorie": "ornement",
+  "sous_categorie": "divers",
+  "description": "Le Nénuphar est une plante aquatique qui pousse dans les eaux calmes et les lacs. Elle est connue pour ses belles fleurs blanches ou colorées et ses feuilles flottantes. Le Nénuphar est une plante importante dans les écosystèmes aquatiques, car elle fournit un habitat pour de nombreux animaux et aide à maintenir la qualité de l'eau.",
+  "origine_naturelle": "Les régions tempérées et tropicales du monde entier",
+  "ecosysteme_naturel": "Eaux calmes, lacs, étangs",
+  "exposition": "mi-ombre à plein soleil",
+  "sol_type": "Sol aquatique",
+  "sol_ph": "pH 7.0–7.5",
+  "terreau_recommande": "terreau plante verte",
+  "arrosage": "Aquatique — immersion possible",
+  "arrosage_frequence": "aquatique — immersion possible",
+  "resistance_froid": "",
+  "zone_rusticite": "",
+  "hauteur_adulte": "",
+  "croissance": "",
+  "taille": "",
+  "floraison": "juin, juillet, août, septembre",
+  "fructification": "",
+  "biodiversite": "Le Nénuphar joue un rôle important dans les écosystèmes aquatiques, en fournissant un habitat pour de nombreux animaux et en aidant à maintenir la qualité de l'eau.",
+  "insectes_attires": "",
+  "oiseaux_attires": "",
+  "associations_benefiques": [
+    "iris",
+    "papyrus",
+    "jonc"
+  ],
+  "associations_incompatibles": [],
+  "plantes_meme_ecosysteme": [
+    "iris",
+    "papyrus",
+    "jonc"
+  ],
+  "maladies_courantes": "",
+  "ravageurs": "",
+  "conseil_plantation": "Planter dans un sol aquatique avec une exposition mi-ombre à plein soleil.",
+  "conseil_entretien": "Assurer un entretien régulier pour maintenir la qualité de l'eau et prévenir les maladies.",
+  "tags": [
+    "plante aquatique",
+    "nymphaea",
+    "fleur blanche"
+  ],
+  "source": "wiki+trefle+groq",
+  "wiki": {
+    "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7d/Nuphar_lutea_%28flower%29.jpg/330px-Nuphar_lutea_%28flower%29.jpg"
+  },
+  "qa_memory": {},
+  "trefle": {
+    "source_trefle": true,
+    "exposition": "mi-ombre à plein soleil",
+    "arrosage_frequence": "aquatique — immersion possible",
+    "sol_ph": "pH 7.0–7.5",
+    "famille_trefle": "Nymphaeaceae",
+    "floraison_mois": "juin, juillet, août, septembre"
+  }
+}

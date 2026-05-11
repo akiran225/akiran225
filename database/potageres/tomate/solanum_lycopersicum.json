@@ -1,0 +1,58 @@
+{
+  "nom_commun": "Tomate",
+  "nom_latin": "Solanum lycopersicum",
+  "famille": "",
+  "categorie": "potageres",
+  "sous_categorie": "tomate",
+  "description": "La Tomate est une plante annuelle à feuilles simples, originaire d'Amérique du Sud, cultivée pour ses fruits comestibles et savoureux.",
+  "origine_naturelle": "",
+  "ecosysteme_naturel": "",
+  "exposition": "mi-ombre à plein soleil",
+  "sol_type": "terreau universel",
+  "sol_ph": "",
+  "terreau_recommande": "100 % terreau potager ou terreau horticole potager",
+  "arrosage": "",
+  "arrosage_frequence": "modéré — arrosage hebdomadaire",
+  "resistance_froid": "15°C minimum",
+  "zone_rusticite": "",
+  "hauteur_adulte": "1,5 à 3 mètres",
+  "croissance": "",
+  "taille": "",
+  "floraison": "de mai à octobre",
+  "fructification": "",
+  "biodiversite": "",
+  "insectes_attires": "",
+  "oiseaux_attires": "",
+  "associations_benefiques": [],
+  "associations_incompatibles": [
+    "Ail"
+  ],
+  "plantes_meme_ecosysteme": [],
+  "maladies_courantes": "",
+  "ravageurs": "",
+  "conseil_plantation": "Planter les Tomates dans un sol bien drainé et ensoleillé, avec un espacement de 50 à 70 cm entre chaque plante",
+  "conseil_entretien": "",
+  "tags": [],
+  "wiki": {
+    "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a5/Tomate_Dev_Num.png/330px-Tomate_Dev_Num.png"
+  },
+  "qa_memory": {
+    "divers": [
+      {
+        "question": "salut parle moi des tomates cornues des andes stp",
+        "answer": "Les tomates cornues des Andes, également appelées tomates \"Tomate (Solanum lycopersicum)\", sont une variété de tomate originaire des régions andines d'Amérique du Sud. Elles sont connues pour leur forme unique, avec des fruits qui ont une petite corne ou une excroissance à l'extrémité. Pour les cultiver, utilisez un terreau universel avec 100 % de terreau potager ou terreau horticole potager, et assurez-les une exposition en mi-ombre à plein soleil.",
+        "category": "divers",
+        "has_alert": false
+      }
+    ]
+  },
+  "source": "error:Expecting value: line 1 column 1 (char 0)+enrichi+enrichi",
+  "trefle": {
+    "source_trefle": true,
+    "resistance_froid": "15°C minimum",
+    "exposition": "mi-ombre à plein soleil",
+    "arrosage_frequence": "modéré — arrosage hebdomadaire",
+    "sol_ph": "pH 7.0–7.5",
+    "famille_trefle": "Solanaceae"
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "nom_commun": "Rhododendron",
+  "nom_latin": "Rhododendron hybridum",
+  "famille": "",
+  "categorie": "plantes_vivaces",
+  "sous_categorie": "rhododendron",
+  "description": "Le Rhododendron est un arbuste à feuilles persistantes, connu pour ses fleurs spectaculaires et colorées qui apparaissent au printemps. Il peut atteindre une hauteur considérable et a besoin d'un sol acide pour prospérer.",
+  "origine_naturelle": "",
+  "ecosysteme_naturel": "",
+  "exposition": "Mi-ombre à ombre",
+  "sol_type": "terreau universel mélangé avec de la tourbe blonde",
+  "sol_ph": "",
+  "terreau_recommande": "100 % terre de bruyère",
+  "arrosage": "",
+  "arrosage_frequence": "Régulier, mais attention à ne pas trop arroser",
+  "resistance_froid": "Moyenne à élevée",
+  "zone_rusticite": "",
+  "hauteur_adulte": "1 à 5 mètres",
+  "croissance": "",
+  "taille": "",
+  "floraison": "Avril à juin",
+  "fructification": "",
+  "biodiversite": "",
+  "insectes_attires": "",
+  "oiseaux_attires": "",
+  "associations_benefiques": [
+    "Fougère",
+    "Camélia"
+  ],
+  "associations_incompatibles": [],
+  "plantes_meme_ecosysteme": [
+    "Azalée"
+  ],
+  "maladies_courantes": "",
+  "ravageurs": "",
+  "conseil_plantation": "",
+  "conseil_entretien": "",
+  "tags": [],
+  "wiki": {
+    "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Flore_des_serres_v14_089a.jpg/330px-Flore_des_serres_v14_089a.jpg"
+  },
+  "qa_memory": {
+    "divers": [
+      {
+        "question": "parle moi du rhododendron",
+        "answer": "Le rhododendron (Rhododendron) préfère une exposition en mi-ombre à ombre et un sol composé de terreau universel mélangé avec de la tourbe blonde, ou même 100 % de terre de bruyère, avec un arrosage régulier mais sans excès.",
+        "category": "divers",
+        "has_alert": false
+      }
+    ]
+  },
+  "source": "error:Expecting value: line 1 column 1 (char 0)+enrichi+enrichi"
+}

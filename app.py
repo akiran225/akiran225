@@ -1,14 +1,3 @@
-"""
-app.py — Interface Streamlit Slothia v2
-=======================================
-CHANGES v2:
-  - Tab 3 Compositeur entièrement réécrit (suppression, réécriture propre)
-  - "Écosystèmes" → "Mon Jardin" : plantes enregistrées avec emplacement / exposition / notes
-  - Filtres & Suggestions : reset total de l'état fiche à chaque changement de plante
-  - Tab 2 Demander : placeholder "Demander à Slothia…" + fiches cliquables dans le chat
-  - Améliorations visuelles CSS (cards, tags, chat bubbles, animations)
-"""
-
 import streamlit as st
 import time
 import streamlit.components.v1 as components
@@ -16,7 +5,7 @@ import copy
 import re
 import requests as _requests
 
-from ia import get_or_create_fiche, ask_plant, identify_photo, groq_chat, groq_chat_admin, groq_vision_chat, _clean_history, ADMIN_KEYWORD
+from ia import get_or_create_fiche, ask_plant, identify_photo, groq_chat, groq_chat_admin, groq_vision_chat, _clean_history, ADMIN_KEYWORD, _NON_PLANTES
 from memory import search_db, get_db_stats, get_qa_summary, contains_alert, purge_corrupted_fiches, repair_nom_commun_from_description
 from associations import (
     GARDEN_FILTERS, DISEASE_CATS, SOIL_SYMPTOMS,
@@ -36,22 +25,19 @@ if "db_purged" not in st.session_state:
         print(f"[STARTUP] {_n} fiche(s) corrompue(s) réparée(s) en DB")
     st.session_state.db_purged = True
 
-# Repair à chaque rerun (léger, corrige les noms comme "Saucisse" → "Sauge")
-_r = repair_nom_commun_from_description()
-if _r:
-    print(f"[REPAIR] {_r} nom(s) commun(s) corrigé(s)")
+# Repair une seule fois par session (peut être lourd sur grande DB)
+if "db_repaired" not in st.session_state:
+    _r = repair_nom_commun_from_description()
+    if _r:
+        print(f"[REPAIR] {_r} nom(s) commun(s) corrigé(s)")
+    st.session_state.db_repaired = True
 
 # ── Nettoyage plant_history : supprimer les non-plantes ─────────────────────────
-_NON_PLANTES_SIDEBAR = {
-    "saucisse","saucisson","viande","poulet","poisson","fromage","beurre","lait",
-    "sel","poivre","sucre","farine","huile","eau","vin","bière","café","thé",
-    "insecte","abeille","papillon","ver","lombric","mulch","compost","engrais",
-    "pierre","gravier","sable","pot","jardin","soleil","ombre","pluie",
-}
+# _NON_PLANTES importé depuis ia.py (source unique)
 if "plant_history" in st.session_state:
     st.session_state["plant_history"] = [
         p for p in st.session_state["plant_history"]
-        if p.get("nom","").lower() not in _NON_PLANTES_SIDEBAR
+        if p.get("nom","").lower() not in _NON_PLANTES
         and len(p.get("nom","")) > 2
     ]
 
@@ -381,7 +367,7 @@ if "_pending_fiche" in st.session_state:
         _pf_fc, _pf_frm = get_or_create_fiche(_pf_nom, _pf_lat)
     _pf_fc = copy.deepcopy(_pf_fc)
 
-    is_aqu = _pf_fc.get("categorie", "") in ["aquatique", "semi_aquatique"]
+    is_aqu = _pf_fc.get("categorie", "") in ["plantes_aquatiques"]
     set_sloth("talking", "Fiche prête ! 🌿", "aquatique" if is_aqu else get_current_season())
 
     # Tous les cas → modale
@@ -792,7 +778,7 @@ with tab1:
                     fiche["confiance"] = c["confiance"]
                 is_tox    = bool(fiche.get("toxicite_wiki"))
                 is_aqu    = fiche.get("categorie","") in ["aquatique","semi_aquatique"]
-                new_tenue = "toxique" if is_tox else "aquatique" if is_aqu else get_current_season()
+                new_tenue = "toxique" if is_tox else "plantes_aquatiques" if is_aqu else get_current_season()
                 new_pose  = "alert"   if is_tox else "excited" if not from_cache else "talking"
                 new_msg   = "⚠️ TOXIQUE !" if is_tox else "Nouvelle plante ! 🌿" if not from_cache else "Je connais déjà ! ⚡"
                 set_sloth(new_pose, new_msg, new_tenue)
@@ -877,9 +863,6 @@ Sois direct et concis. Ne répète pas les noms scientifiques à chaque phrase."
         render_chat("id", send_id, f"Ex : est-ce que {fiche.get('nom_commun','')} est toxique ?")
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# TAB 2 — QUESTION (chat unifié + photo)
-# ══════════════════════════════════════════════════════════════════════════════
 with tab2:
     msgs_libre = st.session_state.msgs_libre
     _is_admin  = st.session_state.get("_admin_mode", False)
@@ -893,7 +876,6 @@ with tab2:
             " Retape <code>akiran01</code> pour désactiver.</div>",
             unsafe_allow_html=True
         )
-        # ── Requêtes non résolues ──────────────────────────────────────────────
         _unresolved = st.session_state.get("_unresolved", [])
         if _unresolved:
             with st.expander(f"⚠️ {len(_unresolved)} requête(s) potentiellement non résolue(s)", expanded=False):
@@ -1010,10 +992,14 @@ with tab2:
         else:
             msgs.append({"role": "user", "content": _q})
             set_sloth("thinking", "Je réfléchis… 🤔")
+            # Passer la dernière fiche connue pour les messages de continuation
+            _fiche_hint = st.session_state.get("_last_fiche_data")
             with st.spinner("🌿"):
-                rep, fiche_detectee = groq_chat(_clean_history(msgs))
+                rep, fiche_detectee = groq_chat(_clean_history(msgs), fiche_hint=_fiche_hint)
             msg_bot = {"role": "assistant", "content": rep}
             if fiche_detectee:
+                # Stocker la fiche pour la prochaine question de continuation
+                st.session_state["_last_fiche_data"] = fiche_detectee
                 pl = {
                     "nom":   fiche_detectee.get("nom_commun", ""),
                     "latin": fiche_detectee.get("nom_latin", ""),
@@ -1025,7 +1011,7 @@ with tab2:
                     any(w in _msg_low for w in _pl_mots) or
                     any(_pl_nom_low[i:i+4] in _msg_low for i in range(max(1, len(_pl_nom_low)-3)))
                 )
-                if _pl_valide and pl["nom"] and pl["nom"].lower() not in {"saucisse","saucisson","viande","poulet","poisson","fromage","beurre","lait","sel","poivre","sucre","farine"}:
+                if _pl_valide and pl["nom"] and pl["nom"].lower() not in _NON_PLANTES:
                     msg_bot["plant_link"] = pl
                     _hist = st.session_state.get("plant_history", [])
                     _hist = [h for h in _hist if h["nom"].lower() != _pl_nom_low]

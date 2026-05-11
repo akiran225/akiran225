@@ -1,0 +1,61 @@
+{
+  "nom_commun": "Clematis integrifolia",
+  "nom_latin": "Clematis integrifolia",
+  "famille": "",
+  "categorie": "plantes_vivaces",
+  "sous_categorie": "clematis",
+  "description": "La Clematis integrifolia est une plante vivace à feuilles persistantes, produisant des fleurs bleues ou violettes en forme de cloche",
+  "origine_naturelle": "",
+  "ecosysteme_naturel": "",
+  "exposition": "Soleil mi-ombrage",
+  "sol_type": "Terreau universel avec un mélange de terre de bruyère",
+  "sol_ph": "",
+  "terreau_recommande": "terreau universel ou terreau plantation",
+  "arrosage": "",
+  "arrosage_frequence": "Régulier, mais pas excessif",
+  "resistance_froid": "Moyenne, supporte jusqu'à -10°C",
+  "zone_rusticite": "",
+  "hauteur_adulte": "1 à 2 mètres",
+  "croissance": "",
+  "taille": "",
+  "floraison": "Mai à juillet",
+  "fructification": "",
+  "biodiversite": "",
+  "insectes_attires": "",
+  "oiseaux_attires": "",
+  "associations_benefiques": [
+    "roses",
+    "lavandes",
+    "violettes"
+  ],
+  "associations_incompatibles": [
+    "plantes à feuilles persistantes",
+    "arbustes à croissance rapide"
+  ],
+  "plantes_meme_ecosysteme": [
+    "Pensée"
+  ],
+  "maladies_courantes": "",
+  "ravageurs": "",
+  "conseil_plantation": "",
+  "conseil_entretien": "",
+  "tags": [],
+  "wiki": {
+    "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/ba/Clematis_integrifolia_02.jpg/330px-Clematis_integrifolia_02.jpg"
+  },
+  "qa_memory": {
+    "divers": [
+      {
+        "question": "parle moi de la clematis gipsy queen",
+        "answer": "La clématite (Clematis) 'Gipsy Queen' est une variété de clématite à grandes fleurs, avec des pétales pourpres foncées. Elle aime une exposition ensoleillée à mi-ombrage et un sol riche, comme un mélange de terreau universel et de terre de bruyère. Il est important de l'arroser régulièrement, mais sans excès, et de la tailler après la floraison, généralement en fin d'hiver.",
+        "category": "divers",
+        "has_alert": false
+      }
+    ]
+  },
+  "source": "error:Expecting value: line 1 column 1 (char 0)+enrichi+enrichi",
+  "trefle": {
+    "source_trefle": true,
+    "famille_trefle": "Ranunculaceae"
+  }
+}

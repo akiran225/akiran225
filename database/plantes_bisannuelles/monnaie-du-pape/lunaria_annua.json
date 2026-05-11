@@ -1,0 +1,67 @@
+{
+  "nom_commun": "Monnaie-du-Pape",
+  "nom_latin": "Lunaria annua",
+  "famille": "Brassicaceae",
+  "categorie": "plantes_bisannuelles",
+  "sous_categorie": "monnaie-du-pape",
+  "description": "La Monnaie-du-Pape est une plante bisannuelle qui pousse naturellement dans les régions tempérées. Elle est connue pour ses feuilles ovales et ses fleurs blanches ou roses qui apparaissent au printemps. Les graines de la Monnaie-du-Pape sont entourées d'une membrane argentée, ce qui leur donne un aspect monétaire.",
+  "origine_naturelle": "Europe, Asie occidentale",
+  "ecosysteme_naturel": "prairies, bordures de forêts",
+  "exposition": "mi-ombre",
+  "sol_type": "sol bien drainé",
+  "sol_ph": "pH 5.5–6.5",
+  "terreau_recommande": "terreau universel",
+  "arrosage": "modéré",
+  "arrosage_frequence": "modéré — arrosage hebdomadaire",
+  "resistance_froid": "-5°C",
+  "zone_rusticite": "USDA 4-8",
+  "hauteur_adulte": "0,5-1m",
+  "croissance": "moyenne",
+  "taille": "pas nécessaire",
+  "floraison": "avril, mai, juin",
+  "fructification": "graines entourées d'une membrane argentée",
+  "biodiversite": "plante mellifère",
+  "insectes_attires": [
+    "abeilles",
+    "papillons"
+  ],
+  "oiseaux_attires": [
+    "pinsons"
+  ],
+  "associations_benefiques": [
+    "tomate",
+    "poivron",
+    "basilic"
+  ],
+  "associations_incompatibles": [
+    "oignon",
+    "ail"
+  ],
+  "plantes_meme_ecosysteme": [
+    "coquelicot",
+    "pâquerette",
+    "trèfle"
+  ],
+  "maladies_courantes": "oïdium, traitement : eau de savon doux",
+  "ravageurs": "pucerons, traitement : insecticide à base de neem",
+  "conseil_plantation": "planter au printemps ou en automne, dans un sol bien drainé",
+  "conseil_entretien": "arrosage régulier, fertilisation légère",
+  "tags": [
+    "plante bisannuelle",
+    "fleurs blanches",
+    "graines argentées"
+  ],
+  "source": "wiki+trefle+groq",
+  "wiki": {
+    "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/45/212_Lunaria_annua.jpg/330px-212_Lunaria_annua.jpg"
+  },
+  "qa_memory": {},
+  "trefle": {
+    "source_trefle": true,
+    "exposition": "mi-ombre",
+    "arrosage_frequence": "modéré — arrosage hebdomadaire",
+    "sol_ph": "pH 5.5–6.5",
+    "famille_trefle": "Brassicaceae",
+    "floraison_mois": "avril, mai, juin"
+  }
+}

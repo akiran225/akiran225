@@ -1,0 +1,55 @@
+{
+  "nom_commun": "Ficus benjamina",
+  "nom_latin": "Ficus benjamina",
+  "famille": "",
+  "categorie": "plantes_vertes",
+  "sous_categorie": "ficus",
+  "description": "Le Ficus benjamina est un arbre à feuilles persistantes originaire d'Asie du Sud-Est, connu pour son tronc épais et ses branches retombantes. Il est souvent cultivé comme plante d'intérieur ou en extérieur dans les régions chaudes.",
+  "origine_naturelle": "",
+  "ecosysteme_naturel": "",
+  "exposition": "L'exposition idéale pour le Ficus benjamina est une lumière indirecte ou filtrée, mais il peut tolérer une exposition directe au soleil si le sol est maintenu humide.",
+  "sol_type": "terreau universel",
+  "sol_ph": "",
+  "terreau_recommande": "100 % terreau plante verte",
+  "arrosage": "",
+  "arrosage_frequence": "Le Ficus benjamina nécessite un arrosage régulier, mais il est important de laisser le sol sécher légèrement entre les arrosages pour éviter les racines pourries.",
+  "resistance_froid": "Le Ficus benjamina est sensible au froid et ne peut pas tolérer des températures inférieures à 10°C.",
+  "zone_rusticite": "",
+  "hauteur_adulte": "Le Ficus benjamina peut atteindre une hauteur de 10 à 15 mètres dans son habitat naturel, mais il est souvent taillé pour maintenir une hauteur de 1 à 3 mètres en culture.",
+  "croissance": "",
+  "taille": "",
+  "floraison": "Le Ficus benjamina produit de petites fleurs blanches ou jaunes qui apparaissent à l'intérieur de la plante, mais elles sont rarement visibles.",
+  "fructification": "",
+  "biodiversite": "",
+  "insectes_attires": "",
+  "oiseaux_attires": "",
+  "associations_benefiques": [
+    "Bougainvillée"
+  ],
+  "associations_incompatibles": [
+    "les plantes à feuilles délicates",
+    "les plantes qui nécessitent une humidité élevée constante"
+  ],
+  "plantes_meme_ecosysteme": [
+    "Fougère"
+  ],
+  "maladies_courantes": "Les maladies courantes du Ficus benjamina incluent les attaques de pucerons, de cochenilles et de champignons tels que la pourriture des racines.",
+  "ravageurs": "",
+  "conseil_plantation": "Il est recommandé de planter le Ficus benjamina dans un endroit bien ventilé et de maintenir un sol humide mais pas débordant d'eau.",
+  "conseil_entretien": "",
+  "tags": [],
+  "wiki": {
+    "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Ficus_benjamina_San_Jos%C3%A9.jpg/330px-Ficus_benjamina_San_Jos%C3%A9.jpg"
+  },
+  "qa_memory": {
+    "divers": [
+      {
+        "question": "parle moi  Ficus benjamina",
+        "answer": "Le Ficus benjamina (Ficus benjamina) nécessite un arrosage régulier, mais il est important de laisser le sol sécher légèrement entre les arrosages pour éviter les racines pourries, utilisez un terreau universel ou 100 % terreau plante verte.",
+        "category": "divers",
+        "has_alert": false
+      }
+    ]
+  },
+  "source": "error:Expecting value: line 1 column 1 (char 0)+enrichi+enrichi"
+}
